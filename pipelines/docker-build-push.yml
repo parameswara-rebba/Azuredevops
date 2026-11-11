@@ -1,0 +1,26 @@
+# Build a Docker image and push it to Azure Container Registry.
+# Requires a Docker Registry service connection to your ACR and a Dockerfile
+# in the repository root.
+
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  containerRegistry: my-acr-service-connection  # TODO: your service connection name
+  imageRepository: my-app                       # TODO: your image name
+  tag: $(Build.BuildId)
+
+steps:
+- task: Docker@2
+  displayName: Build and push image
+  inputs:
+    command: buildAndPush
+    containerRegistry: $(containerRegistry)
+    repository: $(imageRepository)
+    dockerfile: Dockerfile
+    tags: |
+      $(tag)
+      latest

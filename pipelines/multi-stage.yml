@@ -1,0 +1,48 @@
+# Multi-stage pipeline: build once, deploy to dev, then to prod.
+# Create the "dev" and "prod" environments under Pipelines > Environments,
+# and add an approval check to "prod" to gate the production deployment.
+
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+- stage: Build
+  jobs:
+  - job: Build
+    steps:
+    - script: |
+        mkdir -p $(Build.ArtifactStagingDirectory)/app
+        echo "version $(Build.BuildId)" > $(Build.ArtifactStagingDirectory)/app/version.txt
+      displayName: Build
+    - publish: $(Build.ArtifactStagingDirectory)/app
+      artifact: app
+
+- stage: DeployDev
+  displayName: Deploy to dev
+  dependsOn: Build
+  jobs:
+  - deployment: Deploy
+    environment: dev
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: cat $(Pipeline.Workspace)/app/version.txt
+            displayName: Deploy to dev
+
+- stage: DeployProd
+  displayName: Deploy to prod
+  dependsOn: DeployDev
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: Deploy
+    environment: prod
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: cat $(Pipeline.Workspace)/app/version.txt
+            displayName: Deploy to prod

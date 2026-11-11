@@ -1,0 +1,28 @@
+# Basic CI pipeline: runs on every push to main.
+
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  buildConfiguration: Release
+
+steps:
+- checkout: self
+
+- script: |
+    echo "Build ID: $(Build.BuildId)"
+    echo "Branch:   $(Build.SourceBranchName)"
+    echo "Config:   $(buildConfiguration)"
+  displayName: Show build information
+
+- script: |
+    mkdir -p $(Build.ArtifactStagingDirectory)/out
+    echo "built at $(date -u)" > $(Build.ArtifactStagingDirectory)/out/build.txt
+  displayName: Build
+
+- publish: $(Build.ArtifactStagingDirectory)/out
+  artifact: drop
+  displayName: Publish artifact
